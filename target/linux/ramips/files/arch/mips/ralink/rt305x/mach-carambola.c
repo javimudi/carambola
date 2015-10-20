@@ -70,6 +70,36 @@ static struct physmap_flash_data carambola_flash_data = {
 #endif
 };
 
+//spi flash addendum
+
+static struct mtd_partition spiflash_partitions[] = {
+	{
+	.name	= "data",
+		.offset	= 0,
+		.size	= 0x400000,	/* 8MB flash */
+//		.mask_flags = MTD_WRITEABLE,
+	}
+};
+
+static const struct flash_platform_data spiflash_flash = {
+	.type		= "w25x64",
+#ifdef CONFIG_MTD_PARTITIONS
+	.parts		= spiflash_partitions,
+	.nr_parts	= ARRAY_SIZE(spiflash_partitions),
+#endif
+};
+
+static struct spi_board_info __initdata spiflash_spi_slave_info[] = {
+        {
+                .modalias       = "m25p80",
+                .platform_data  = &spiflash_flash,
+                .irq            = -1,
+                .max_speed_hz   = 52428800,
+                .bus_num        = 0,
+                .chip_select    = 0,
+        },
+};
+
 
 static int __init carambola_register_gpiodev(void)
 {
@@ -115,17 +145,27 @@ static struct spi_board_info carambola_spi_info[] = {
 
 static void __init carambola_init(void)
 {
-	rt305x_gpio_init((RT305X_GPIO_MODE_GPIO << RT305X_GPIO_MODE_UART0_SHIFT) |
-			 RT305X_GPIO_MODE_I2C);
+	//what you add here means rest of pins will be reserved for other purposes instead of gpios
+
+	//rt305x_gpio_init((RT305X_GPIO_MODE_GPIO_UARTF << RT305X_GPIO_MODE_UART0_SHIFT) |		//use uartf gpios, i2c and spi
+	//			RT305X_GPIO_MODE_I2C | RT305X_GPIO_MODE_SPI);
+
+	rt305x_gpio_init((RT305X_GPIO_MODE_GPIO_UARTF << RT305X_GPIO_MODE_UART0_SHIFT) |
+				RT305X_GPIO_MODE_I2C);
+
+
 	carambola_register_gpiodev();
 	platform_add_devices(carambola_devices, ARRAY_SIZE(carambola_devices));
 	rt305x_register_flash(0, &carambola_flash_data);
+	rt305x_register_spi(spiflash_spi_slave_info, ARRAY_SIZE(spiflash_spi_slave_info));
 
 	rt305x_esw_data.vlan_config = RT305X_ESW_VLAN_CONFIG_WLLLL;
 	rt305x_register_ethernet();
 	rt305x_register_wifi();
 	rt305x_register_wdt();
-	rt305x_register_spi(carambola_spi_info, ARRAY_SIZE(carambola_spi_info));
+	//rt305x_register_spi(carambola_spi_info, ARRAY_SIZE(carambola_spi_info));
+
+
 	rt305x_register_usb();
 }
 
